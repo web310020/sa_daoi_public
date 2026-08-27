@@ -1,8 +1,6 @@
-"""
-C-PPO Lagrangian Hyperparameter Sweep (Tier D).
-Sweeps lambda_lr across 5 values, trains + evaluates each.
-Usage: python -m eval.sweep_cppo
-Output: Table showing C-PPO fails across all configurations.
+"""Tier-D C-PPO Lagrangian sweep；检查不同 ``lambda_lr`` 下的训练与约束表现。
+
+Run with ``python -m eval.sweep_cppo``.
 """
 import sys, os
 import numpy as np

@@ -1,0 +1,28 @@
+{
+  "n_seeds": 30,
+  "train_episodes": 200,
+  "eval_episodes_per_seed": 30,
+  "eval_seeds": [
+    10,
+    20,
+    30
+  ],
+  "feasible_count": 6,
+  "feasibility_p_hat": 0.2,
+  "wilson_95ci_lo": 0.0950510717728987,
+  "wilson_95ci_hi": 0.3730569641314825,
+  "aoi_mean_ms": 118.44315277777777,
+  "aoi_std_ms": 149.75115812961238,
+  "viol_mean_pct": 58.39217592592592,
+  "viol_std_pct": 37.2746264045142,
+  "ref_5seed_paper_0130": {
+    "feasible": 1,
+    "n": 5,
+    "p_hat": 0.2,
+    "ci_lo": 0.05,
+    "ci_hi": 0.55
+  },
+  "ci_tightening": 0.22199410764141625,
+  "elapsed_minutes": 3.487310572465261,
+  "timestamp": "2026-04-30T18:11:21.138980"
+}

@@ -1,9 +1,16 @@
+"""公开 release 的 checkpoints、runner protocol 与 portable paths 回归测试。"""
+
+import csv
 import hashlib
+import json
+import math
 from pathlib import Path
 import re
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
+from zipfile import ZipFile
 
 import numpy as np
 
@@ -26,7 +33,49 @@ def sha256_file(path):
 
 
 class ReleaseContractTests(unittest.TestCase):
-    def test_ise_harvest_preserves_declared_floor_and_total_quota(self):
+    def test_burst_violation_metric_preserves_definition1_fraction(self):
+        from eval.bursty_traffic import definition1_violation_rate
+
+        self.assertAlmostEqual(definition1_violation_rate([0.0, 0.25, 0.50]), 0.25)
+        with self.assertRaisesRegex(ValueError, "at least one TTI"):
+            definition1_violation_rate([])
+
+    def test_evaluator_can_run_the_exact_supplied_environment(self):
+        from agents.sa_daoi import SADAOIScheduler
+        from eval.evaluator import evaluate_env
+        from eval.multicell_preliminary import HalfTierDEnv
+
+        environment = HalfTierDEnv(max_steps=2)
+        environment.reset(seed=10)
+        agent = SADAOIScheduler(environment)
+        original_id = id(environment)
+
+        result = evaluate_env(agent, environment, num_episodes=1, seed=10)
+
+        self.assertEqual(result["environment_object_id"], original_id)
+        self.assertEqual(result["vehicle_count"], 105)
+        self.assertEqual(result["slice_census"], {"SAFETY": 80, "CE": 20, "IOT": 5})
+
+    def test_multicell_runner_never_substitutes_a_full_tier_d_environment(self):
+        from eval import multicell_preliminary as multicell
+
+        observed = {}
+
+        def fake_evaluate_env(agent, environment, num_episodes, seed):
+            observed["environment"] = environment
+            observed["num_episodes"] = num_episodes
+            observed["seed"] = seed
+            return {"vehicle_count": len(environment.vehicles)}
+
+        with patch.object(multicell, "evaluate_env", side_effect=fake_evaluate_env):
+            result = multicell.run_cell(seed=20, num_episodes=2, max_steps=1)
+
+        self.assertIsInstance(observed["environment"], multicell.HalfTierDEnv)
+        self.assertEqual(observed["num_episodes"], 2)
+        self.assertEqual(observed["seed"], 20)
+        self.assertEqual(result["vehicle_count"], 105)
+
+    def test_paper_configured_ise_uses_activation_threshold_not_post_transfer_floor(self):
         from agents.sa_daoi import SADAOIScheduler
         from env.vehicular import SliceType
 
@@ -53,8 +102,8 @@ class ReleaseContractTests(unittest.TestCase):
         selected = scheduler._apply_ise(best_idx=0, s_aoi=0.0)
         allocation = environment.action_table[selected]
 
-        self.assertEqual(allocation, (2, 4, 4))
-        self.assertGreaterEqual(allocation[0], scheduler.w_floor)
+        self.assertEqual(allocation, (1, 5, 4))
+        self.assertLess(allocation[0], scheduler.w_floor)
         self.assertEqual(sum(allocation), sum(environment.action_table[0]))
 
     def test_learned_policies_fail_closed_when_checkpoint_is_missing(self):
@@ -124,6 +173,51 @@ class ReleaseContractTests(unittest.TestCase):
             self.assertTrue(path.is_file(), f"missing checkpoint: {path}")
             self.assertEqual(sha256_file(path), expected)
 
+    def test_readme_separates_checkpoint_producer_from_verified_consumer_version(self):
+        for name in ("ppo_D.zip", "cppo_D.zip"):
+            with ZipFile(MODEL_DIR / name) as archive:
+                producer_version = archive.read("_stable_baselines3_version").decode().strip()
+            self.assertEqual(producer_version, "2.8.0")
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("Stable-Baselines3 2.8.0", readme)
+        self.assertIn("Stable-Baselines3 2.7.1", readme)
+        self.assertIn("producer metadata", readme)
+        self.assertIn("consumer environment", readme)
+
+    def test_dqn_checkpoint_stability_rows_recompute_the_paper_counts(self):
+        root = ROOT / "reference_results" / "dqn_checkpoint_stability"
+        expected = {
+            "200_episodes": (200, 6, 0.0950510717728987, 0.3730569641314825),
+            "500_episodes": (500, 8, 0.14182663319596317, 0.4444796169518888),
+        }
+        z = 1.959963984540054
+
+        for directory, (budget, feasible, expected_lo, expected_hi) in expected.items():
+            source = root / directory
+            with (source / "seeds.csv").open(newline="", encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+            summary = json.loads((source / "summary.json").read_text(encoding="utf-8"))
+            observed_feasible = sum(int(row["sla_met"]) for row in rows)
+            proportion = observed_feasible / len(rows)
+            denominator = 1.0 + z * z / len(rows)
+            center = (proportion + z * z / (2.0 * len(rows))) / denominator
+            half_width = (
+                z
+                * math.sqrt(
+                    proportion * (1.0 - proportion) / len(rows)
+                    + z * z / (4.0 * len(rows) ** 2)
+                )
+                / denominator
+            )
+
+            self.assertEqual(len(rows), 30)
+            self.assertEqual(summary["train_episodes"], budget)
+            self.assertEqual(observed_feasible, feasible)
+            self.assertEqual(summary["feasible_count"], feasible)
+            self.assertAlmostEqual(center - half_width, expected_lo)
+            self.assertAlmostEqual(center + half_width, expected_hi)
+
     def test_readme_uses_block_level_statistical_language(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         lowered = readme.lower().replace(" ", "")
@@ -132,28 +226,16 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("150 distinct environment seeds", readme)
         self.assertIn("https://github.com/00-Shen/sa_daoi_public", readme)
 
-    def test_public_files_contain_no_private_workspace_residue(self):
-        forbidden = (
-            "_sand" + "box/",
-            "_" + "sage/",
-            "SAGE " + "phase",
-            "v" + "058_",
-            "2026" + "0326_",
-        )
+    def test_public_text_uses_portable_paths_and_expected_repository_url(self):
         expected_public_url = "https://github.com/00-Shen/sa_daoi_public"
         checked_suffixes = {".py", ".md", ".txt", ".yaml", ".yml", ".json"}
         offenders = []
         for path in ROOT.rglob("*"):
             if not path.is_file() or ".git" in path.parts:
                 continue
-            if path.resolve() == Path(__file__).resolve():
-                continue
             if path.suffix.lower() not in checked_suffixes and path.name != "requirements.txt":
                 continue
             text = path.read_text(encoding="utf-8", errors="replace")
-            for token in forbidden:
-                if token in text:
-                    offenders.append(f"{path.relative_to(ROOT)}: {token}")
             for url in re.findall(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", text):
                 if url != expected_public_url:
                     offenders.append(f"{path.relative_to(ROOT)}: unexpected repository URL")

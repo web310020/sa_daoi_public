@@ -1,6 +1,6 @@
-"""Backward-compatible entry point for the corrected Load-D reproduction.
+"""保留旧调用方式的 compatibility entry point，实际转到 corrected Load-D reproduction。
 
-Use ``python -m eval.reproduce_main`` in new workflows.
+新使用者请运行 ``python -m eval.reproduce_main``。
 """
 
 from eval.reproduce_main import main

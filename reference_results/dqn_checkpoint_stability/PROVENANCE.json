@@ -1,0 +1,32 @@
+{
+  "schema": "sa-daoi-dqn-checkpoint-stability/v1",
+  "carrier_scope": "per-training-seed descriptive result rows",
+  "runner": {
+    "path": "eval/dqn_stability_30seed.py",
+    "sha256": "6eab0d351f9ad6026ab48d5745c6d531d29e466c7e59a440eab0817b34fb4ab8"
+  },
+  "studies": {
+    "200_episodes": {
+      "training_seed_count": 30,
+      "training_episodes_per_seed": 200,
+      "evaluation_episodes_per_seed": 30,
+      "evaluation_base_seeds": [10, 20, 30],
+      "feasible_checkpoint_count": 6,
+      "seeds_csv_sha256": "44a1cffb105b27f4cb0597cdee1ea5c1b2d9a3d3f513c4b2697c54b9d591ac2c",
+      "summary_json_sha256": "3dde1aa8544fc2e6ca9fe5a0f994fe67ea8432fb1b06a32943724f823dc67509"
+    },
+    "500_episodes": {
+      "training_seed_count": 30,
+      "training_episodes_per_seed": 500,
+      "evaluation_episodes_per_seed": 30,
+      "evaluation_base_seeds": [10, 20, 30],
+      "feasible_checkpoint_count": 8,
+      "seeds_csv_sha256": "19f3f6f144efad77c02dbd3b3ad235db2f3be99dc14f38d135109bea6a3e01f8",
+      "summary_json_sha256": "5547628e452f9832bb550b10d9d346e43e959ca86587628091b581bc285fcd5c"
+    }
+  },
+  "limitations": [
+    "The trained checkpoint archives and training logs are not included.",
+    "The carrier supports recomputation of the reported descriptive counts and intervals, not bit-exact retraining."
+  ]
+}

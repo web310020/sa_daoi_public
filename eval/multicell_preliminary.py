@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import gymnasium as gym
 from env.vehicular import VehicularNetworkEnv, SliceType, Vehicle
 from agents.sa_daoi import SADAOIScheduler
-from eval.evaluator import evaluate
+from eval.evaluator import evaluate_env
 from configs import EVAL
 
 REPO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -45,12 +45,13 @@ class HalfTierDEnv(VehicularNetworkEnv):
         return self._get_obs(), {}
 
 
-def run_cell(seed: int) -> dict:
+def run_cell(seed: int, num_episodes=None, max_steps=None) -> dict:
     """Run SA-DAoI on one 105-vehicle cell for num_episodes x T."""
-    env = HalfTierDEnv()
+    env = HalfTierDEnv(max_steps=max_steps)
     env.reset(seed=seed)              # creates env.vehicles before agent init
     agent = SADAOIScheduler(env)
-    return evaluate(agent, "D", num_episodes=EVAL["num_episodes"], seed=seed)
+    episodes = EVAL["num_episodes"] if num_episodes is None else num_episodes
+    return evaluate_env(agent, env, num_episodes=episodes, seed=seed)
 
 
 def aggregate(cell1: dict, cell2: dict) -> dict:

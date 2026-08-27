@@ -1,7 +1,4 @@
-"""
-SA-DAoI Project Configuration
-All hyperparameters centralized here. No magic numbers elsewhere.
-"""
+"""论文与复现实验共用的 SA-DAoI configuration；集中维护 hyperparameters。"""
 
 # ─── Tier definitions (Table II in paper) ───────────────────────────
 TIER_PARAMS = {

@@ -1,5 +1,5 @@
 """
-Unified evaluation loop.
+统一的 evaluation loop；各方法共享相同的 episode 与 metrics aggregation。
 Every method only needs to provide:
   - select_action(env) → int
   - on_step(info)  [optional]
@@ -34,9 +34,20 @@ def evaluate(agent, load_tier, num_episodes=None, seed=42):
     -------
     dict  with keys matching configs.CSV_FIELDS
     """
+    env = VehicularNetworkEnv(load_tier=load_tier)
+    return evaluate_env(agent, env, num_episodes=num_episodes, seed=seed)
+
+
+def evaluate_env(agent, env, num_episodes=None, seed=42):
+    """Evaluate an agent in the exact caller-supplied environment object.
+
+    该入口用于需要固定环境身份的实验（例如 half-cell）。它不会根据 load tier
+    重新创建或替换环境，因此结果中的 census 与实际执行对象保持一致。
+    """
+
     set_seed(seed)
     num_episodes = num_episodes or EVAL["num_episodes"]
-    env = VehicularNetworkEnv(load_tier=load_tier)
+    environment_object_id = id(env)
 
     rewards  = []
     history  = {"aoi": [], "vio_rate": [], "stv": [], "pend": [], "ql": []}
@@ -88,6 +99,14 @@ def evaluate(agent, load_tier, num_episodes=None, seed=42):
     if latencies:
         res["latency_avg_ms"] = float(np.mean(latencies))
         res["latency_p99_ms"] = float(np.percentile(latencies, 99))
+
+    census = {
+        slice_type.name.upper(): sum(v.slice_type == slice_type for v in env.vehicles)
+        for slice_type in SLICE_TYPES
+    }
+    res["environment_object_id"] = environment_object_id
+    res["vehicle_count"] = sum(census.values())
+    res["slice_census"] = census
 
     return res
 

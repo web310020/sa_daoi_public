@@ -1,7 +1,4 @@
-"""
-SA-DAoI scheduler.
-Cubic AoI urgency scoring + adaptive alpha guardrail + ISE redistribution.
-"""
+"""SA-DAoI scheduler：组合 cubic AoI urgency、adaptive guardrail 与 ISE redistribution。"""
 import numpy as np
 from collections import deque
 import sys, os
@@ -97,15 +94,16 @@ class SADAOIScheduler:
         psi_iot = np.exp(self._ewma_q.get(SliceType.IOT, ql[SliceType.IOT]) / self.Q_max)
         total_psi = psi_ce + psi_iot
 
-        harvest = min(self.harvest_n, alloc[0] - self.w_floor)
-        if harvest <= 0:
-            return best_idx
+        # In the paper-configured implementation, ``w_floor`` is an activation
+        # threshold only. It is not enforced as a post-transfer quota floor.
+        harvest = self.harvest_n
         alloc[0] -= harvest
         ce_share = int(harvest * psi_ce / total_psi)
         alloc[1] += ce_share
         alloc[2] += harvest - ce_share
 
-        return self._find_nearest(alloc)
+        new_idx = self._find_nearest(alloc)
+        return new_idx if new_idx != best_idx else max(0, best_idx - 1)
 
     # ── 主入口 ──────────────────────────────────────────────────────
     def select_action(self, env=None):

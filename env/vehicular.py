@@ -105,7 +105,7 @@ class VehicularNetworkEnv(gym.Env):
         alloc = self.action_table[action_idx]
         slice_caps = [alloc[i] * self.packets_per_rb for i in range(3)]
 
-        # 1. Traffic arrival
+        # Traffic arrivals；Tier D 额外包含 seasonal 与 burst load。
         t = self.current_step
         base_p = self.param_p_arr
         if self.load_tier == "D":
@@ -119,7 +119,7 @@ class VehicularNetworkEnv(gym.Env):
             if self.np_random.random() < current_p:
                 v.queue += 1
 
-        # 2. Service & AoI update (per-slice fair scheduling)
+        # Per-slice fair service 与 AoI update。
         actual_usage = [0.0, 0.0, 0.0]
         for s_type in SLICE_TYPES:
             idx = s_type.value
@@ -140,7 +140,7 @@ class VehicularNetworkEnv(gym.Env):
                     v.aoi_comm += 1.0
             actual_usage[idx] = (served / cap0) if cap0 > 0 else 0.0
 
-        # 3. Compute violation, starvation & reward (paper Eq. 5)
+        # 按 paper Eq. (5) 计算 violation、starvation 与 reward。
         safety_vehs = [v for v in self.vehicles if v.slice_type == SliceType.SAFETY]
         viol_s = (np.mean([float(v.aoi_comm > self.aoi_thresholds[SliceType.SAFETY])
                            for v in safety_vehs]) if safety_vehs else 0.0)

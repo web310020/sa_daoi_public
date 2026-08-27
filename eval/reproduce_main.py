@@ -1,4 +1,4 @@
-"""Reproduce the block-level Load-D comparison used in the paper."""
+"""复现论文的 block-level Load-D comparison，并核对 frozen reference rows。"""
 
 import argparse
 import csv

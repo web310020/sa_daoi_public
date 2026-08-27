@@ -45,6 +45,19 @@ METHOD_ORDER = ["SA-DAoI", "DQN-AoI", "T-AoI", "Whittle",
                 "PPO-AoI", "C-PPO", "Static-RR"]
 
 
+def definition1_violation_rate(step_violation_fractions):
+    """Return Definition 1's mean per-TTI, per-vehicle violation fraction.
+
+    每个输入值已经是该 TTI 内超过 Safety AoI threshold 的车辆比例；这里仅在
+    时间轴上取平均，不能改写为 slice-average AoI 是否越界的二元事件。
+    """
+
+    fractions = [float(value) for value in step_violation_fractions]
+    if not fractions:
+        raise ValueError("at least one TTI violation fraction is required")
+    return float(np.mean(fractions))
+
+
 def make_agent(name, env):
     """创建 agent (与 eval/run_all.py 工厂一致)."""
     if name == "SA-DAoI":
@@ -80,8 +93,7 @@ def evaluate_mmpp(name, tier, num_episodes, seeds):
             original_p = env.param_p_arr
 
             done = False
-            step_viols = []  # binary: 1 if slice-avg AoI > Gamma_S
-            gamma_s = env.aoi_thresholds[SliceType.SAFETY]
+            step_viols = []  # per-vehicle Safety violation fraction at each TTI
             while not done:
                 # MMPP state transition
                 if burst_state:
@@ -101,11 +113,9 @@ def evaluate_mmpp(name, tier, num_episodes, seeds):
                 obs, reward, terminated, truncated, info = env.step(action)
                 agent.on_step(info)
 
-                # Violation per Definition 1: slice-average AoI > Gamma_S
-                safety_vehs_step = [v for v in env.vehicles
-                                    if v.slice_type == SliceType.SAFETY]
-                avg_aoi_step = np.mean([v.aoi_comm for v in safety_vehs_step])
-                step_viols.append(1.0 if avg_aoi_step > gamma_s else 0.0)
+                # Definition 1 carrier exported by the environment: the fraction of
+                # Safety vehicles whose AoI exceeds the threshold at this TTI.
+                step_viols.append(float(info.get("viol_safety", 0.0)))
 
                 done = terminated or truncated
 
@@ -114,7 +124,7 @@ def evaluate_mmpp(name, tier, num_episodes, seeds):
             safety_vehs = [v for v in env.vehicles
                            if v.slice_type == SliceType.SAFETY]
             mean_aoi = np.mean([v.aoi_comm for v in safety_vehs])
-            viol_rate = np.mean(step_viols) * 100  # percentage
+            viol_rate = definition1_violation_rate(step_viols) * 100  # percentage
             es_backlog = sum(v.queue for v in env.vehicles
                             if v.slice_type != SliceType.SAFETY)
 

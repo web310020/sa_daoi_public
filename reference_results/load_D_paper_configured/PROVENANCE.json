@@ -1,0 +1,21 @@
+{
+  "schema": "sa-daoi-paper-configured-reference/v1",
+  "load_case": "D",
+  "paper_carrier": "Table IV and the Load-D headline comparison",
+  "metrics_file": "metrics_D_5seed.csv",
+  "metrics_sha256": "1620b9c2256482fc4be0378efb14df2e4214ab2c83b0468d1174ac86027e3a2d",
+  "method_count": 7,
+  "aggregate_count_per_method": 5,
+  "base_seeds": [10, 20, 30, 40, 50],
+  "episodes_per_base_seed": 30,
+  "episode_seed_rule": "base_seed + episode_index",
+  "distinct_episode_seeds_per_method": 70,
+  "total_episode_executions_per_method": 150,
+  "independent_episode_replicates": false,
+  "statistical_unit": "configured_base_seed_aggregate",
+  "summary_rule": "descriptive mean and sample standard deviation over five configured base-seed aggregates",
+  "original_execution_script_sha256": "e0338844507788d685be26373a8c9a8e80b77d6e6580b75c779f7e6e0a9dd445",
+  "original_evaluator_sha256": "f4a0d7c27781842ceca28080baf6e460ca779e3b192c31b1a9982eb6aa472b93",
+  "relation_to_load_D_nonoverlap": "distinct_protocol",
+  "scope_note": "This frozen file is the exact paper-configured result carrier. reference_results/load_D is a later non-overlapping-seed verification run and must not be substituted for the paper values."
+}

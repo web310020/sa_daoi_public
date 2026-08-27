@@ -1,7 +1,7 @@
 """
-Urgency-mapping ablation: sweep exponent p in {1,2,3,4} on Tier D.
+Urgency-mapping ablation：在 Tier D 上扫描 exponent ``p`` ∈ {1, 2, 3, 4}。
 
-Usage: python -m eval.urgency_ablation
+Run with ``python -m eval.urgency_ablation``.
 """
 import os
 import sys

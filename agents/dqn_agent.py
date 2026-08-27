@@ -1,6 +1,4 @@
-"""
-DQN baseline (AoI-aware slicing).
-"""
+"""用于 AoI-aware slicing 的 DQN baseline 与 checkpoint loader。"""
 import os
 import random
 from collections import deque
