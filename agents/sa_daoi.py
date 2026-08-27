@@ -97,14 +97,15 @@ class SADAOIScheduler:
         psi_iot = np.exp(self._ewma_q.get(SliceType.IOT, ql[SliceType.IOT]) / self.Q_max)
         total_psi = psi_ce + psi_iot
 
-        harvest = self.harvest_n
+        harvest = min(self.harvest_n, alloc[0] - self.w_floor)
+        if harvest <= 0:
+            return best_idx
         alloc[0] -= harvest
         ce_share = int(harvest * psi_ce / total_psi)
         alloc[1] += ce_share
         alloc[2] += harvest - ce_share
 
-        new_idx = self._find_nearest(alloc)
-        return new_idx if new_idx != best_idx else max(0, best_idx - 1)
+        return self._find_nearest(alloc)
 
     # ── 主入口 ──────────────────────────────────────────────────────
     def select_action(self, env=None):

@@ -1,89 +1,75 @@
 # SA-DAoI
 
-首先感谢您阅读这篇论文 First of all, thank you for reading this paper
+This repository contains the reference implementation and evaluation code for
+**Starvation-Aware Deterministic Age of Information (SA-DAoI)**, a training-free
+slice-level scheduler for V2X O-RAN resource allocation.
 
+Repository: <https://github.com/00-Shen/sa_daoi_public>
 
+## What is included
 
-V2X O-RAN slicing 调度的 reference implementation. 支持 SA-DAoI (主算法) 与 6 个 baseline (Static-RR, T-AoI, Whittle, DQN-AoI, PPO-AoI, C-PPO).
+- `agents/sa_daoi.py`: SA-DAoI scheduler with floor-preserving ISE redistribution.
+- `agents/heuristics.py`: Static-RR, threshold-normalized AoI, and Whittle baselines.
+- `agents/dqn_agent.py` and `agents/ppo_cppo.py`: learned baseline definitions.
+- `env/vehicular.py`: Gymnasium-compatible V2X slicing simulator.
+- `eval/reproduce_main.py`: main Load-D block-level comparison.
+- `models/load_D/`: the exact DQN, PPO, and C-PPO checkpoints used by the main runner.
+- `reference_results/load_D/`: frozen block-level reference output and hashes.
+- `plotting/`: figure and table generators for recorded experiment outputs.
 
-## 结构
+The learned-policy loaders fail closed: evaluation stops if a required checkpoint is
+missing or unreadable.
 
-```
-sa_daoi_public/
-├── configs.py             # hyperparameters (single source of truth)
-├── env/
-│   └── vehicular.py       # V2X 切片 Gymnasium 环境
-├── agents/
-│   ├── sa_daoi.py         # SA-DAoI 主算法
-│   ├── ablation.py        # ablation 变体 (继承 sa_daoi)
-│   ├── heuristics.py      # Static-RR / T-AoI / Whittle
-│   ├── dqn_agent.py       # DQN-AoI baseline
-│   └── ppo_cppo.py        # PPO-AoI + C-PPO (Lagrangian)
-├── eval/
-│   ├── evaluator.py                    # 统一 evaluation loop
-│   ├── polish_5seed_and_multicell.py   # 主结果 (Tier D, n=150)
-│   ├── dqn_stability_30seed.py         # 30-seed DQN sweep
-│   ├── urgency_ablation.py             # 紧迫度指数 ablation
-│   ├── bursty_traffic.py               # MMPP burst
-│   ├── multicell_preliminary.py        # 多 cell preliminary
-│   ├── run_sensitivity.py              # 敏感性 sweep
-│   └── sweep_cppo.py                   # C-PPO eta_lambda sweep
-└── plotting/
-    ├── generate_all_figs.py
-    ├── generate_tables.py
-    └── fig_aoi_distribution.py
-```
+## Installation
 
-## 安装
+Python 3.10 is recommended. Create an isolated environment and install:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-Python 3.10+, PyTorch 2.x. CPU 即可 (SA-DAoI 不需 GPU; DRL baseline GPU 加速可选).
+The release was verified on CPU with Python 3.10.19, NumPy 2.2.6, PyTorch 2.5.1,
+Gymnasium 1.2.3, Stable-Baselines3 2.7.1, pandas 2.3.3, Matplotlib 3.10.7, and
+Seaborn 0.13.2.
 
-## Reproduction
+## Quick verification
 
-主结果 (Tier D, 5 seeds × 30 ep, n=150):
+Run the release tests:
 
 ```bash
-python -m eval.polish_5seed_and_multicell
+python -m unittest -v tests.test_release_contract
 ```
 
-30-seed DQN stability sweep:
+Load all three learned checkpoints and execute a one-episode smoke cell:
 
 ```bash
-python -m eval.dqn_stability_30seed --workers 4
+python -m eval.reproduce_main --smoke --output-dir results/smoke
 ```
 
-紧迫度 ablation (p ∈ {1,2,3,4}):
+## Main Load-D reproduction
 
 ```bash
-python -m eval.urgency_ablation
+python -m eval.reproduce_main --output-dir results/load_D_reproduction
 ```
 
-MMPP burst:
+The independent statistical unit is a deployment block: `n=5` blocks, each containing
+30 sequential episodes. The protocol executes 150 distinct environment seeds per method,
+but those episode executions are not treated as 150 independent inferential replicates.
+A fresh policy instance is constructed for every method and deployment block.
 
-```bash
-python -m eval.bursty_traffic
-```
+Reported values are descriptive means and sample standard deviations across the five
+block aggregates. The main runner uses block starts 1000, 2000, 3000, 4000, and 5000.
 
-绘图:
+## Auxiliary analyses
 
-```bash
-python -m plotting.generate_all_figs --data-dir results/<timestamp>/
-```
-
-## 设计要点
-
-1. `agents/sa_daoi.py` 中的 `SADAOIScheduler` 是算法唯一实现, ablation 变体通过继承 + override 关键方法.
-2. `eval/evaluator.py` 提供统一 evaluation loop, 所有 method 共用.
-3. `configs.py` 集中所有 hyperparameter, 避免 magic number.
+The other scripts under `eval/` and `plotting/` support the paper's descriptive ablation,
+sensitivity, burst-traffic, multi-cell, and visualization carriers. They are separate from
+the main block-level comparison above; do not combine their statistical units.
 
 ## Authors
 
-Zhiqiang Shen, Jitae Shin (Sungkyunkwan University)
+Zhiqiang Shen and Jitae Shin, Sungkyunkwan University.
 
 ## License
 
-MIT (见 LICENSE 文件)
+MIT; see [LICENSE](LICENSE).

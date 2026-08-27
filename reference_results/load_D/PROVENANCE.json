@@ -1,0 +1,14 @@
+{
+  "schema": "sa-daoi-reference-result/v1",
+  "load_case": "D",
+  "method_count": 7,
+  "block_count_per_method": 5,
+  "episodes_per_block": 30,
+  "unique_environment_seeds_per_method": 150,
+  "statistical_unit": "deployment_block",
+  "policy_lifecycle": "fresh_policy_per_method_and_block",
+  "block_starts": [1000, 2000, 3000, 4000, 5000],
+  "source_execution_carrier_sha256": "89a4c1ae5da0c753e34fd8a564e3dec9aa9c32006db1be415115346824e2918a",
+  "load_D_blocks_sha256": "1cb6fe13c3341bf755aa2c9e816a8bc30e1d03572a529168468295e393849b4c"
+}
+

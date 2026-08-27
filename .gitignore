@@ -10,3 +10,6 @@ __pycache__/
 results/
 *.log
 .ipynb_checkpoints/
+.pytest_cache/
+.coverage
+htmlcov/

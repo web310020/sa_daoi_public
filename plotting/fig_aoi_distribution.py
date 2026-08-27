@@ -1,14 +1,10 @@
-"""
-Tier D per-seed Safety AoI 分布图 (Fig 2(b)).
-
-Usage: python -m plotting.fig_aoi_distribution
-"""
+"""Plot the five Load-D block aggregates used in the main comparison."""
+import argparse
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import glob
 import os
 import sys
 
@@ -41,9 +37,8 @@ SLA_MS = 20.0
 
 # ─── Paths ───────────────────────────────────────────────────────────
 REPO        = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR    = os.path.join(REPO, "results", "v058_20260409_130414")
+DATA_CSV    = os.path.join(REPO, "reference_results", "load_D", "load_D_blocks.csv")
 OUT_DIR     = os.path.join(REPO, "results", "figures")
-OUT_PDF     = os.path.join(REPO, "results", "figures", "fig_aoi_distribution.pdf")
 
 def save_dual_format(fig, out_dir, base_name):
     for ext in [".pdf", ".png"]:
@@ -51,42 +46,21 @@ def save_dual_format(fig, out_dir, base_name):
         fig.savefig(path, dpi=600, bbox_inches="tight", pad_inches=0.02)
     print(f"  {base_name}.pdf & .png")
 
-def _find_polish_5seed_csv():
-    """找最新的 polish_5seed/metrics_D_5seed.csv 路径."""
-    candidates = sorted(glob.glob(os.path.join(REPO, "results",
-                                              "v058_polish_5seed_*",
-                                              "metrics_D_5seed.csv")))
-    return candidates[-1] if candidates else None
-
-
-def load_data():
-    """返回 {method: list[aoi_ms]}. 优先 5-seed polish CSV, fallback 到 3-seed legacy."""
-    polish_csv = _find_polish_5seed_csv()
-    if polish_csv is not None:
-        print(f"  [load_data] 5-seed CSV: {os.path.relpath(polish_csv, REPO)}")
-        df = pd.read_csv(polish_csv)
-        data = {m: df[df.method == m]["aoi_safety_ms"].tolist()
-                for m in METHOD_ORDER}
-
-        # DQN-AoI 改用独立 training-seed sweep (展现训练不稳定性, 而非单 checkpoint 重放)
-        stab_path = os.path.join(DATA_DIR, "dqn_stability.csv")
-        if os.path.exists(stab_path):
-            stab = pd.read_csv(stab_path)
-            data["DQN-AoI"] = stab["aoi_mean"].tolist()
-        return data
-
-    # Fallback: 3-seed metrics_D + 5-seed DQN stability
-    print(f"  [load_data] no 5-seed CSV, fallback to 3-seed legacy")
-    df = pd.read_csv(os.path.join(DATA_DIR, "metrics_D.csv"))
-    data = {m: df[df.method == m]["aoi_total_SAFETY"].tolist()
-            for m in METHOD_ORDER}
-    stab = pd.read_csv(os.path.join(DATA_DIR, "dqn_stability.csv"))
-    data["DQN-AoI"] = stab["aoi_mean"].tolist()
+def load_data(data_csv=DATA_CSV):
+    """Return five block-level Safety-AoI values per method."""
+    frame = pd.read_csv(data_csv)
+    data = {
+        method: frame[frame.method == method]["aoi_safety_ms"].tolist()
+        for method in METHOD_ORDER
+    }
+    missing = [method for method, values in data.items() if len(values) != 5]
+    if missing:
+        raise ValueError(f"expected five block rows for each method; invalid: {missing}")
     return data
 
 
-def fig_aoi_distribution():
-    data = load_data()
+def fig_aoi_distribution(data_csv=DATA_CSV, out_dir=OUT_DIR):
+    data = load_data(data_csv)
     fig, ax = plt.subplots(figsize=(3.5, 2.51))
 
     # Tier D SLA 阈值阴影
@@ -106,7 +80,7 @@ def fig_aoi_distribution():
         # Compact (n=k) caption below each column
         #ax.text(i, 0.7, f"n={len(aois)}", ha="center", va="bottom", fontsize=7, color="dimgray")
 
-    ax.text(0.5, 0.28, "5 seeds per method", transform=ax.transAxes, fontsize=8, color="dimgray", va="bottom", ha="center")
+    ax.text(0.5, 0.28, "5 deployment blocks per method", transform=ax.transAxes, fontsize=8, color="dimgray", va="bottom", ha="center")
 
     # SLA threshold line + label (match fig_pareto style: non-bold, no "SLA" prefix)
     ax.axhline(SLA_MS, color=THR_COLOR, ls=THR_LS,
@@ -117,7 +91,7 @@ def fig_aoi_distribution():
             fontsize=7, color=THR_COLOR)
 
     # Axes & decoration
-    ax.set_title("(b)")  # Fig 2(b) per-seed AoI distribution
+    ax.set_title("(b)")
     ax.set_yscale("log")
     ax.set_ylim(0.7, 300)
     ax.set_xlim(-0.5, len(METHOD_ORDER) - 0.5)
@@ -138,14 +112,14 @@ def fig_aoi_distribution():
     #fig.savefig(OUT_PDF, dpi=600, bbox_inches="tight", pad_inches=0.02)
     #plt.close(fig)
     #print(f"  fig_aoi_distribution.pdf -> {OUT_PDF}")
-    os.makedirs(OUT_DIR, exist_ok=True)
-    save_dual_format(fig, OUT_DIR, "fig_aoi_distribution")
+    os.makedirs(out_dir, exist_ok=True)
+    save_dual_format(fig, out_dir, "fig_aoi_distribution")
     plt.close(fig)
 
 
-def print_summary():
-    data = load_data()
-    print("\nTier D Safety AoI distribution (existing CSVs):")
+def print_summary(data_csv=DATA_CSV):
+    data = load_data(data_csv)
+    print("\nTier D Safety AoI distribution (deployment blocks):")
     for m in METHOD_ORDER:
         aois = data[m]
         met = sum(1 for a in aois if a < SLA_MS)
@@ -156,5 +130,9 @@ def print_summary():
 
 
 if __name__ == "__main__":
-    fig_aoi_distribution()
-    print_summary()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data-csv", default=DATA_CSV)
+    parser.add_argument("--out-dir", default=OUT_DIR)
+    arguments = parser.parse_args()
+    fig_aoi_distribution(arguments.data_csv, arguments.out_dir)
+    print_summary(arguments.data_csv)

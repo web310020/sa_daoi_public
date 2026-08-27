@@ -95,15 +95,14 @@ def train_cppo(load_tier, models_dir, total_timesteps=None):
 
 class PPOPolicy:
     def __init__(self, env, models_dir, load_tier):
-        self.model = None
-        if HAS_SB3:
-            path = os.path.join(models_dir, f"ppo_{load_tier}")
-            if os.path.exists(path + ".zip"):
-                self.model = SB3_PPO.load(path)
+        if not HAS_SB3:
+            raise RuntimeError("stable-baselines3 is required for PPO evaluation")
+        path = os.path.join(models_dir, f"ppo_{load_tier}")
+        if not os.path.isfile(path + ".zip"):
+            raise FileNotFoundError(f"PPO checkpoint not found: {path}.zip")
+        self.model = SB3_PPO.load(path)
 
     def select_action(self, env):
-        if self.model is None:
-            return 0
         obs = env._get_obs()
         action, _ = self.model.predict(obs, deterministic=True)
         return int(action)
@@ -117,15 +116,14 @@ class PPOPolicy:
 
 class CPPOPolicy:
     def __init__(self, env, models_dir, load_tier):
-        self.model = None
-        if HAS_SB3:
-            path = os.path.join(models_dir, f"cppo_{load_tier}")
-            if os.path.exists(path + ".zip"):
-                self.model = SB3_PPO.load(path)
+        if not HAS_SB3:
+            raise RuntimeError("stable-baselines3 is required for C-PPO evaluation")
+        path = os.path.join(models_dir, f"cppo_{load_tier}")
+        if not os.path.isfile(path + ".zip"):
+            raise FileNotFoundError(f"C-PPO checkpoint not found: {path}.zip")
+        self.model = SB3_PPO.load(path)
 
     def select_action(self, env):
-        if self.model is None:
-            return 0
         obs = env._get_obs()
         action, _ = self.model.predict(obs, deterministic=True)
         return int(action)

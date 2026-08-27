@@ -1,18 +1,7 @@
-# Python 3.10+ 必需; Win11 + Ubuntu 22.04 测试通过
-# SA-DAoI 算法本体 CPU only (确定性线性算术); DRL baseline GPU 加速可选
-
-# Core scientific stack
-numpy~=1.26
-scipy~=1.13
-pandas~=2.2
-
-# DL/RL framework (paper Table II: PyTorch 2.11.0)
-torch==2.11.0
-
-# RL 环境 + 算法
-gymnasium~=0.29
-stable-baselines3~=2.3
-
-# 绘图 (figures 用; 不在 reproducibility critical path)
-matplotlib~=3.8
-seaborn~=0.13
+numpy>=2.2,<2.3
+torch>=2.5,<2.6
+gymnasium>=1.2,<1.3
+stable-baselines3>=2.7,<2.8
+pandas>=2.3,<2.4
+matplotlib>=3.10,<3.11
+seaborn>=0.13,<0.14

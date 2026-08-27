@@ -130,15 +130,18 @@ def train_dqn(load_tier, models_dir, num_episodes=None):
 
 
 class DQNPolicy:
-    """加载训练好的 DQN 用于 evaluation."""
+    """Load a trained DQN checkpoint for evaluation."""
 
     def __init__(self, env, models_dir, load_tier):
+        if not HAS_TORCH:
+            raise RuntimeError("PyTorch is required for DQN evaluation")
         obs, _ = env.reset()
         self.agent = DQNAgent(obs.shape[0], env.n_actions)
         path = os.path.join(models_dir, f"dqn_{load_tier}.pth")
-        if os.path.exists(path):
-            self.agent.q_net.load_state_dict(
-                torch.load(path, map_location="cpu", weights_only=True))
+        if not os.path.isfile(path):
+            raise FileNotFoundError(f"DQN checkpoint not found: {path}")
+        self.agent.q_net.load_state_dict(
+            torch.load(path, map_location="cpu", weights_only=True))
 
     def select_action(self, env=None):
         if env is not None:

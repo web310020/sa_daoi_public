@@ -335,7 +335,8 @@ def generate_md_report(df, data_dir, out_dir):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", default="results/20260326_125453")
+    parser.add_argument("--data_dir", required=True,
+                        help="Directory containing the experiment CSV files")
     parser.add_argument("--out_dir", default=None,
                         help="Output directory for MD report (default: same as data_dir)")
     args = parser.parse_args()

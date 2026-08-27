@@ -521,7 +521,8 @@ def print_table3(df):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", default="results/v058_20260409_130414")
+    parser.add_argument("--data_dir", required=True,
+                        help="Directory containing the experiment CSV files")
     parser.add_argument("--out_dir",  default="results/figures")
     args = parser.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)

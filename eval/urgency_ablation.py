@@ -16,7 +16,7 @@ from eval.evaluator import evaluate
 from configs import EVAL
 
 REPO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT_CSV  = os.path.join(REPO_DIR, "results", "v058_20260409_130414",
+OUT_CSV  = os.path.join(REPO_DIR, "results", "urgency_ablation",
                         "urgency_ablation_D.csv")
 
 TIER     = "D"

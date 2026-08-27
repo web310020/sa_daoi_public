@@ -28,7 +28,7 @@ NUM_EPISODES = 30
 EVAL_SEEDS = [10, 20, 30]
 RESULTS_DIR = "results/bursty_traffic"
 MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                          "results", "20260326_125453", "models")
+                          "models", "load_D")
 
 # Poisson baseline data from Table III (for comparison)
 POISSON_REF = {
